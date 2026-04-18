@@ -1,6 +1,7 @@
 services:
   app:
     build: .
+    image: udonarium-axe-backend-app
     ports:
       - "3000:80"
     volumes:

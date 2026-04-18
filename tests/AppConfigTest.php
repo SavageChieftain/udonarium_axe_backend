@@ -4,16 +4,31 @@ declare(strict_types=1);
 
 use PHPUnit\Framework\TestCase;
 
+/**
+ * {@see AppConfig} のテストケース。
+ *
+ * 環境変数配列からのインスタンス生成（fromEnv）と
+ * .env ファイルからのロード（load）の両方を検証する。
+ */
 class AppConfigTest extends TestCase
 {
+    /** @var string テスト用一時ディレクトリのパス */
     private string $tempDir;
 
+    /**
+     * テスト用の一時ディレクトリを作成する。
+     */
     protected function setUp(): void
     {
         $this->tempDir = sys_get_temp_dir() . '/appconfig_test_' . uniqid();
         mkdir($this->tempDir);
     }
 
+    /**
+     * 一時ディレクトリ内のファイルを削除し、ディレクトリを破棄する。
+     *
+     * ENV_PATH 環境変数もリセットして他のテストへの影響を防ぐ。
+     */
     protected function tearDown(): void
     {
         foreach (new DirectoryIterator($this->tempDir) as $item) {
@@ -29,7 +44,11 @@ class AppConfigTest extends TestCase
     // fromEnv
     // ──────────────────────────────────────────────
 
-    /** @return array<string, string> */
+    /**
+     * テスト用の有効な環境変数配列を返す。
+     *
+     * @return array<string, string>
+     */
     private function validEnv(): array
     {
         return [
@@ -40,6 +59,9 @@ class AppConfigTest extends TestCase
         ];
     }
 
+    /**
+     * 有効な環境変数からインスタンスが正しく生成されることを確認する。
+     */
     public function testFromEnvCreatesInstance(): void
     {
         $config = AppConfig::fromEnv($this->validEnv());
@@ -49,6 +71,9 @@ class AppConfigTest extends TestCase
         $this->assertSame(['https://example.com'], $config->allowedOrigins);
     }
 
+    /**
+     * SKYWAY_UDONARIUM_LOBBY_SIZE が未設定の場合、デフォルト値 3 が適用されることを確認する。
+     */
     public function testFromEnvDefaultsLobbySizeTo3(): void
     {
         $env = $this->validEnv();
@@ -57,6 +82,9 @@ class AppConfigTest extends TestCase
         $this->assertSame(3, $config->lobbySize);
     }
 
+    /**
+     * SKYWAY_APP_ID が欠落している場合に InvalidArgumentException がスローされることを確認する。
+     */
     public function testFromEnvThrowsWhenAppIdMissing(): void
     {
         $env = $this->validEnv();
@@ -65,6 +93,9 @@ class AppConfigTest extends TestCase
         AppConfig::fromEnv($env);
     }
 
+    /**
+     * SKYWAY_SECRET が欠落している場合に InvalidArgumentException がスローされることを確認する。
+     */
     public function testFromEnvThrowsWhenSecretMissing(): void
     {
         $env = $this->validEnv();
@@ -73,6 +104,9 @@ class AppConfigTest extends TestCase
         AppConfig::fromEnv($env);
     }
 
+    /**
+     * カンマ区切りの複数オリジンが正しくパースされることを確認する。
+     */
     public function testFromEnvParsesMultipleOrigins(): void
     {
         $env                              = $this->validEnv();
@@ -82,6 +116,9 @@ class AppConfigTest extends TestCase
         $this->assertContains('https://b.com', $config->allowedOrigins);
     }
 
+    /**
+     * ロビーサイズが 0 の場合に InvalidArgumentException がスローされることを確認する。
+     */
     public function testFromEnvThrowsWhenLobbySizeIsZero(): void
     {
         $env                              = $this->validEnv();
@@ -90,6 +127,9 @@ class AppConfigTest extends TestCase
         AppConfig::fromEnv($env);
     }
 
+    /**
+     * ロビーサイズが負の値の場合に InvalidArgumentException がスローされることを確認する。
+     */
     public function testFromEnvThrowsWhenLobbySizeIsNegative(): void
     {
         $env                              = $this->validEnv();
@@ -98,6 +138,9 @@ class AppConfigTest extends TestCase
         AppConfig::fromEnv($env);
     }
 
+    /**
+     * ロビーサイズが数値以外の文字列の場合に InvalidArgumentException がスローされることを確認する。
+     */
     public function testFromEnvThrowsWhenLobbySizeIsNonNumeric(): void
     {
         $env                              = $this->validEnv();
@@ -110,12 +153,18 @@ class AppConfigTest extends TestCase
     // load
     // ──────────────────────────────────────────────
 
+    /**
+     * 候補ファイルがすべて存在しない場合に InvalidArgumentException がスローされることを確認する。
+     */
     public function testLoadThrowsWhenNoFileFound(): void
     {
         $this->expectException(\InvalidArgumentException::class);
         AppConfig::load('/nonexistent/path/.env');
     }
 
+    /**
+     * 有効な .env ファイルからインスタンスが正しく生成されることを確認する。
+     */
     public function testLoadParsesValidEnvFile(): void
     {
         $envFile = $this->tempDir . '/.env';
@@ -126,6 +175,9 @@ class AppConfigTest extends TestCase
         $this->assertSame('my-secret', $config->secret);
     }
 
+    /**
+     * 複数の候補が存在する場合、最初に見つかったファイルが使用されることを確認する。
+     */
     public function testLoadUsesFirstFoundCandidate(): void
     {
         $first  = $this->tempDir . '/first.env';
@@ -137,6 +189,9 @@ class AppConfigTest extends TestCase
         $this->assertSame('first-app', $config->appId);
     }
 
+    /**
+     * 存在しない候補ファイルをスキップして次の候補を読み込むことを確認する。
+     */
     public function testLoadSkipsNonExistentCandidates(): void
     {
         $envFile = $this->tempDir . '/.env';
@@ -146,6 +201,9 @@ class AppConfigTest extends TestCase
         $this->assertSame('my-app', $config->appId);
     }
 
+    /**
+     * ENV_PATH 環境変数が設定されている場合、候補ファイルより優先されることを確認する。
+     */
     public function testLoadEnvPathTakesPriorityOverCandidates(): void
     {
         $priority = $this->tempDir . '/priority.env';
@@ -159,6 +217,9 @@ class AppConfigTest extends TestCase
         $this->assertSame('priority-app', $config->appId);
     }
 
+    /**
+     * .env ファイルの文字列値が正しく型変換（lobbySize → int）されることを確認する。
+     */
     public function testLoadPreservesStringValuesWithoutTypeConversion(): void
     {
         $envFile = $this->tempDir . '/.env';

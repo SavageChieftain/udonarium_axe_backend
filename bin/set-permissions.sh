@@ -28,15 +28,9 @@ find "${TARGET}" -type d -exec chmod 755 {} +
 find "${TARGET}" -type f -exec chmod 644 {} +
 
 # ── .env（機密情報）: 600 ────────────────────────────────────────
-# ドキュメントルート内と一つ上の両方をチェック
 if [[ -f "${TARGET}/.env" ]]; then
     chmod 600 "${TARGET}/.env"
     echo "    .env                -> 600"
-fi
-
-if [[ -f "${TARGET}/../.env" ]]; then
-    chmod 600 "${TARGET}/../.env"
-    echo "    ../.env             -> 600"
 fi
 
 echo ""
@@ -45,5 +39,3 @@ echo ""
 echo "  ディレクトリ          755 (rwxr-xr-x)"
 echo "  一般ファイル          644 (rw-r--r--)"
 echo "  .env                  600 (rw-------)"
-echo ""
-echo "※ .env はドキュメントルートの一つ上に配置することを推奨します。"

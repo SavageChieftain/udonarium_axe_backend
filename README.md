@@ -27,7 +27,6 @@
 
 ```
 /home/user/www/backend/   ← ドキュメントルート（index.php がここ）
-/home/user/.env           ← .env はドキュメントルートの一つ上を推奨
 ```
 
 ### 2. `.env` の作成
@@ -45,22 +44,20 @@ SKYWAY_UDONARIUM_LOBBY_SIZE=3
 ACCESS_CONTROL_ALLOW_ORIGIN=https://your-udonarium-front.example.com
 ```
 
-> **注意:** `.env` はドキュメントルートの**一つ上**に置くことを推奨します。
-> ドキュメントルート直下に置く場合は `.htaccess` による保護が有効であることを確認してください。
+`.env` は `index.php` と同じディレクトリに配置します。`.htaccess` によりブラウザからの直接アクセスは遮断されます。
 
 ### 3. パーミッションの設定
 
 FTP クライアントでファイルを右クリックし、「パーミッション」や「属性変更」からパーミッションを設定してください。
 
 ```
-/home/user/
-├── .env                          600  ← 機密情報（推奨配置場所）
-└── www/backend/                  755
+www/backend/                      755
+├── .env                          600  ← 機密情報
+├── .htaccess                     644
+├── index.php                     644
+└── src/                          755
     ├── .htaccess                  644
-    ├── index.php                  644
-    └── src/                       755
-        ├── .htaccess              644
-        └── *.php                  644
+    └── *.php                     644
 ```
 
 | 対象                                  | パーミッション | FTP クライアントでの設定手順                           |
@@ -85,7 +82,7 @@ bash bin/set-permissions.sh
 ```sh
 find . -type d -exec chmod 755 {} +
 find . -type f -exec chmod 644 {} +
-chmod 600 ../.env
+chmod 600 .env
 ```
 
 </details>

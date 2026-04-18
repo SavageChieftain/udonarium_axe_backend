@@ -32,12 +32,12 @@ if ($publicResponse !== null) {
 
 // ─── 設定読み込み ────────────────────────────────────────────────────────────
 
-// .env の探索順: ドキュメントルートの一つ上（推奨）→ 同一ディレクトリ（フォールバック）
+// .env の探索順: 同一ディレクトリ（FTP 環境向け）→ 一つ上（SSH 環境向け）
 // 環境変数 ENV_PATH を設定すると任意のパスを直接指定できる。
 try {
     $config = AppConfig::load(
-        dirname(__DIR__) . '/.env',
         __DIR__ . '/.env',
+        dirname(__DIR__) . '/.env',
     );
 } catch (\InvalidArgumentException) {
     Response::json(500, ['error' => 'Internal Server Error.'])->send();

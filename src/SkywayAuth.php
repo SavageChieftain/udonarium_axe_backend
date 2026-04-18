@@ -10,35 +10,38 @@ declare(strict_types=1);
  */
 class SkywayAuth
 {
+    /** トークンの有効期間（秒）: 24 時間 */
+    private const EXPIRY_SECONDS = 86400;
+
     /**
      * SkyWay 2023 用の JWT トークンを生成する。
      *
      * ロビーチャンネルとルームチャンネルの両方に対するスコープを含む
      * トークンを返す。有効期限は発行時刻から 24 時間。
      *
-     * @param string $appId       SkyWay アプリケーション ID
-     * @param string $secret      HMAC-SHA256 署名に使用するシークレットキー
-     * @param int    $lobbySize   ロビーチャンネルの最大数
-     * @param string $channelName ルームチャンネル名
-     * @param string $peerId      ピア ID
-     * @param string $jti         JWT ID（空文字列の場合は UUID v4 を自動生成）
-     * @param int    $iat         発行時刻 Unix タイムスタンプ（0 の場合は現在時刻）
+     * @param string      $appId       SkyWay アプリケーション ID
+     * @param string      $secret      HMAC-SHA256 署名に使用するシークレットキー
+     * @param int         $lobbySize   ロビーチャンネルの最大数
+     * @param string      $channelName ルームチャンネル名
+     * @param string      $peerId      ピア ID
+     * @param string|null $jti         JWT ID（null の場合は UUID v4 を自動生成）
+     * @param int|null    $iat         発行時刻 Unix タイムスタンプ（null の場合は現在時刻）
      *
      * @return string Base64URL エンコードされた JWT 文字列
      *
      * @throws \JsonException JSON エンコードに失敗した場合
      */
     public static function generate(
-        string $appId,
-        string $secret,
-        int    $lobbySize,
-        string $channelName,
-        string $peerId,
-        string $jti = '',
-        int    $iat = 0,
+        string  $appId,
+        string  $secret,
+        int     $lobbySize,
+        string  $channelName,
+        string  $peerId,
+        ?string $jti = null,
+        ?int    $iat = null,
     ): string {
-        $jti = $jti !== '' ? $jti : self::generateUuid();
-        $iat = $iat !== 0 ? $iat : time();
+        $jti = $jti ?? self::generateUuid();
+        $iat = $iat ?? time();
 
         $lobbyChannels = [
             [
@@ -90,7 +93,7 @@ class SkywayAuth
         $payload = [
             'jti'     => $jti,
             'iat'     => $iat,
-            'exp'     => $iat + 60 * 60 * 24,
+            'exp'     => $iat + self::EXPIRY_SECONDS,
             'version' => 2,
             'scope'   => $scope,
         ];

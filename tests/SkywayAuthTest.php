@@ -267,4 +267,27 @@ class SkywayAuthTest extends TestCase
         $sig2 = explode('.', $token2)[2];
         $this->assertNotSame($sig1, $sig2);
     }
+
+    /**
+     * jti を null（デフォルト）で呼び出した場合に UUID v4 形式の jti が生成されることを確認する。
+     */
+    public function testGenerateAutoGeneratesUuidWhenJtiIsNull(): void
+    {
+        $token   = SkywayAuth::generate(
+            appId: 'app',
+            secret: 'secret',
+            lobbySize: 3,
+            channelName: 'ch',
+            peerId: 'peer',
+            iat: 1700000000,
+        );
+        $payload = $this->decodeJwtPart($token, 1);
+
+        $jti = $payload['jti'];
+        $this->assertIsString($jti);
+        $this->assertMatchesRegularExpression(
+            '/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/',
+            $jti,
+        );
+    }
 }

@@ -129,6 +129,7 @@ class Response
         }
 
         header('X-Content-Type-Options: nosniff');
+        header('Cache-Control: no-store');
 
         foreach ($this->headers as $name => $value) {
             header($name . ': ' . $value);

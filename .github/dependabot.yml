@@ -7,9 +7,6 @@ updates:
     labels:
       - dependencies
     open-pull-requests-limit: 10
-    ignore:
-      - dependency-name: "phpunit/phpunit"
-        update-types: ["version-update:semver-major"]
 
   - package-ecosystem: npm
     directory: /

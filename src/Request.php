@@ -2,14 +2,27 @@
 
 declare(strict_types=1);
 
+/**
+ * HTTP リクエストを表すイミュータブルな値オブジェクト。
+ *
+ * グローバル変数（$_SERVER, php://input）から生成するか、
+ * テスト用に任意の値で生成できる。
+ */
 class Request
 {
     /**
      * php://input の読み取り上限 (64KB + 1 byte)。
+     *
      * 1 byte 多く読むことで上限超過を検出できる。
      */
     private const MAX_BODY_READ = 65537;
 
+    /**
+     * @param string $method  HTTP メソッド（大文字正規化済み）
+     * @param string $path    リクエストパス（スクリプトディレクトリ除去済み）
+     * @param string $origin  Origin ヘッダーの値（空文字列 = 未送信）
+     * @param string $rawBody リクエストボディの生データ
+     */
     private function __construct(
         public readonly string $method,
         public readonly string $path,
@@ -19,6 +32,11 @@ class Request
 
     /**
      * 実行環境のグローバル変数からリクエストを生成する。
+     *
+     * サブディレクトリ運用にも対応し、SCRIPT_NAME のディレクトリ部分を
+     * REQUEST_URI から除去したパスを生成する。
+     *
+     * @return self 現在の HTTP リクエストを表すインスタンス
      */
     public static function fromGlobals(): self
     {
@@ -48,7 +66,16 @@ class Request
     }
 
     /**
-     * テスト等で任意の値からリクエストを生成する。
+     * 任意の値からリクエストを生成する。
+     *
+     * 主にテストで使用する。
+     *
+     * @param string $method HTTP メソッド（自動的に大文字に正規化される）
+     * @param string $path   リクエストパス
+     * @param string $origin Origin ヘッダーの値
+     * @param string $body   リクエストボディ
+     *
+     * @return self 指定した値を持つインスタンス
      */
     public static function create(
         string $method,
@@ -60,7 +87,11 @@ class Request
     }
 
     /**
-     * リクエストボディを返す。$maxBytes を超える場合は false を返す。
+     * リクエストボディを返す。
+     *
+     * @param int $maxBytes ボディの最大許容バイト数
+     *
+     * @return string|false ボディ文字列。$maxBytes を超える場合は false
      */
     public function body(int $maxBytes): string|false
     {

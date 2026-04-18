@@ -2,9 +2,20 @@
 
 declare(strict_types=1);
 
+/**
+ * HTTP レスポンスを表すイミュータブルな値オブジェクト。
+ *
+ * ファクトリメソッドで JSON・テキスト・204 のレスポンスを生成し、
+ * {@see send()} で実際に送出する。
+ */
 class Response
 {
-    /** @param array<string, string> $headers */
+    /**
+     * @param int                  $statusCode  HTTP ステータスコード
+     * @param string               $contentType Content-Type ヘッダー値（空文字列 = 省略）
+     * @param string               $body        レスポンスボディ
+     * @param array<string, string> $headers     追加レスポンスヘッダー
+     */
     private function __construct(
         private readonly int    $statusCode,
         private readonly string $contentType,
@@ -15,7 +26,12 @@ class Response
     /**
      * JSON レスポンスを生成する。
      *
-     * @param mixed $data
+     * @param int   $code HTTP ステータスコード
+     * @param mixed $data JSON エンコード対象のデータ
+     *
+     * @return self Content-Type: application/json のレスポンス
+     *
+     * @throws \JsonException エンコードに失敗した場合
      */
     public static function json(int $code, mixed $data): self
     {
@@ -28,6 +44,11 @@ class Response
 
     /**
      * プレーンテキストレスポンスを生成する。
+     *
+     * @param int    $code HTTP ステータスコード
+     * @param string $body レスポンスボディ
+     *
+     * @return self Content-Type: text/plain のレスポンス
      */
     public static function text(int $code, string $body): self
     {
@@ -40,6 +61,8 @@ class Response
 
     /**
      * 204 No Content レスポンスを生成する。
+     *
+     * @return self ボディ・Content-Type のない 204 レスポンス
      */
     public static function noContent(): self
     {
@@ -49,33 +72,53 @@ class Response
     /**
      * 追加ヘッダーをマージした新しいインスタンスを返す。
      *
-     * @param array<string, string> $extra
+     * @param array<string, string> $extra マージする追加ヘッダー
+     *
+     * @return self ヘッダーが追加された新しいインスタンス
      */
     public function withHeaders(array $extra): self
     {
         return new self($this->statusCode, $this->contentType, $this->body, array_merge($this->headers, $extra));
     }
 
+    /**
+     * HTTP ステータスコードを返す。
+     *
+     * @return int HTTP ステータスコード
+     */
     public function getStatusCode(): int
     {
         return $this->statusCode;
     }
 
+    /**
+     * レスポンスボディを返す。
+     *
+     * @return string レスポンスボディ文字列
+     */
     public function getBody(): string
     {
         return $this->body;
     }
 
-    /** @return array<string, string> */
+    /**
+     * 追加レスポンスヘッダーを返す。
+     *
+     * @return array<string, string> ヘッダー名をキー、値をバリューとする配列
+     */
     public function getHeaders(): array
     {
         return $this->headers;
     }
 
     /**
-     * レスポンスを送出して終了する。
+     * レスポンスを送出してプロセスを終了する。
+     *
+     * ステータスコード・Content-Type・セキュリティヘッダー・追加ヘッダーを
+     * 送出し、ボディを出力した後 exit する。
      *
      * @return never
+     *
      * @codeCoverageIgnore
      */
     public function send(): never

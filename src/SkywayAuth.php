@@ -2,11 +2,31 @@
 
 declare(strict_types=1);
 
+/**
+ * SkyWay 2023 用の認証トークン（JWT）を生成するユーティリティクラス。
+ *
+ * TypeScript 実装（udonarium-backend-vercel）と同一の構造・署名方式で
+ * HS256 署名付き JWT を生成する。
+ */
 class SkywayAuth
 {
     /**
      * SkyWay 2023 用の JWT トークンを生成する。
-     * TypeScript 実装（udonarium-backend-vercel）と同じ構造・署名方式。
+     *
+     * ロビーチャンネルとルームチャンネルの両方に対するスコープを含む
+     * トークンを返す。有効期限は発行時刻から 24 時間。
+     *
+     * @param string $appId       SkyWay アプリケーション ID
+     * @param string $secret      HMAC-SHA256 署名に使用するシークレットキー
+     * @param int    $lobbySize   ロビーチャンネルの最大数
+     * @param string $channelName ルームチャンネル名
+     * @param string $peerId      ピア ID
+     * @param string $jti         JWT ID（空文字列の場合は UUID v4 を自動生成）
+     * @param int    $iat         発行時刻 Unix タイムスタンプ（0 の場合は現在時刻）
+     *
+     * @return string Base64URL エンコードされた JWT 文字列
+     *
+     * @throws \JsonException JSON エンコードに失敗した場合
      */
     public static function generate(
         string $appId,
@@ -87,7 +107,13 @@ class SkywayAuth
     }
 
     /**
-     * Base64URL エンコード（パディングなし、"+" → "-"、"/" → "_"）。
+     * Base64URL エンコードする。
+     *
+     * RFC 4648 §5 に従い、パディングを除去し "+" → "-"、"/" → "_" に置換する。
+     *
+     * @param string $data エンコード対象のバイナリデータ
+     *
+     * @return string Base64URL エンコードされた文字列
      */
     private static function base64UrlEncode(string $data): string
     {
@@ -96,6 +122,8 @@ class SkywayAuth
 
     /**
      * RFC 4122 v4 準拠の UUID を生成する。
+     *
+     * @return string ハイフン区切りの 36 文字 UUID 文字列
      */
     private static function generateUuid(): string
     {

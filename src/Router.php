@@ -2,15 +2,25 @@
 
 declare(strict_types=1);
 
+/**
+ * シンプルなメソッド + パスベースの HTTP ルーター。
+ *
+ * 完全一致のパスとメソッドの組み合わせでハンドラを呼び出す。
+ * パターンマッチングやパラメータキャプチャは行わない。
+ */
 class Router
 {
-    /** @var array<string, array<string, callable(): Response>> */
+    /** @var array<string, array<string, callable(): Response>> パス → メソッド → ハンドラ */
     private array $routes = [];
 
     /**
      * ルートを登録する。
      *
-     * @param callable(): Response $handler
+     * @param string             $method  HTTP メソッド（大文字・小文字は問わない）
+     * @param string             $path    完全一致で照合するパス
+     * @param callable(): Response $handler レスポンスを返すハンドラ関数
+     *
+     * @return void
      */
     public function add(string $method, string $path, callable $handler): void
     {
@@ -19,8 +29,13 @@ class Router
 
     /**
      * リクエストに一致するルートハンドラを実行して Response を返す。
-     * パスが存在しない場合は null を返す。
-     * パスは存在するがメソッドが許可されていない場合は 405 を返す。
+     *
+     * @param string $method HTTP メソッド（大文字・小文字は問わない）
+     * @param string $path   リクエストパス
+     *
+     * @return Response|null 一致した場合はハンドラの戻り値。
+     *                       パスが未登録なら null。
+     *                       パスは存在するがメソッドが未登録なら 405 レスポンス。
      */
     public function dispatch(string $method, string $path): ?Response
     {

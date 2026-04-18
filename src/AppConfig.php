@@ -33,7 +33,7 @@ class AppConfig
      *
      * @return self バリデーション済みの設定インスタンス
      *
-     * @throws \InvalidArgumentException 必須キーが欠けている場合
+     * @throws \InvalidArgumentException .env が見つからない場合、または必須キーが欠けている場合
      */
     public static function load(string ...$candidates): self
     {
@@ -42,17 +42,19 @@ class AppConfig
             array_unshift($candidates, $envPath);
         }
 
-        $env = [];
         foreach ($candidates as $path) {
             if (!file_exists($path)) {
                 continue;
             }
             $result = parse_ini_file($path, false, INI_SCANNER_RAW);
             $env    = ($result !== false) ? $result : [];
-            break;
+
+            return self::fromEnv($env);
         }
 
-        return self::fromEnv($env);
+        throw new \InvalidArgumentException(
+            'No .env file found. Searched: ' . implode(', ', $candidates),
+        );
     }
 
     /**
@@ -66,11 +68,11 @@ class AppConfig
      */
     public static function fromEnv(array $env): self
     {
-        if (empty($env['SKYWAY_APP_ID'])) {
+        if (!isset($env['SKYWAY_APP_ID']) || $env['SKYWAY_APP_ID'] === '') {
             throw new \InvalidArgumentException('SKYWAY_APP_ID is required in .env');
         }
 
-        if (empty($env['SKYWAY_SECRET'])) {
+        if (!isset($env['SKYWAY_SECRET']) || $env['SKYWAY_SECRET'] === '') {
             throw new \InvalidArgumentException('SKYWAY_SECRET is required in .env');
         }
 
@@ -93,8 +95,8 @@ class AppConfig
      */
     private static function parseLobbySize(string $value): int
     {
-        $size = (int) $value;
-        if ($size < 1) {
+        $size = filter_var($value, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]);
+        if ($size === false) {
             throw new \InvalidArgumentException('SKYWAY_UDONARIUM_LOBBY_SIZE must be a positive integer');
         }
 

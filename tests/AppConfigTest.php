@@ -149,6 +149,28 @@ class AppConfigTest extends TestCase
         AppConfig::fromEnv($env);
     }
 
+    /**
+     * ロビーサイズが数字で始まるが数値以外の文字を含む場合に InvalidArgumentException がスローされることを確認する。
+     */
+    public function testFromEnvThrowsWhenLobbySizeHasTrailingNonNumeric(): void
+    {
+        $env                              = $this->validEnv();
+        $env['SKYWAY_UDONARIUM_LOBBY_SIZE'] = '3abc';
+        $this->expectException(\InvalidArgumentException::class);
+        AppConfig::fromEnv($env);
+    }
+
+    /**
+     * ロビーサイズが小数の場合に InvalidArgumentException がスローされることを確認する。
+     */
+    public function testFromEnvThrowsWhenLobbySizeIsFloat(): void
+    {
+        $env                              = $this->validEnv();
+        $env['SKYWAY_UDONARIUM_LOBBY_SIZE'] = '3.5';
+        $this->expectException(\InvalidArgumentException::class);
+        AppConfig::fromEnv($env);
+    }
+
     // ──────────────────────────────────────────────
     // load
     // ──────────────────────────────────────────────
@@ -159,6 +181,7 @@ class AppConfigTest extends TestCase
     public function testLoadThrowsWhenNoFileFound(): void
     {
         $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage('No .env file found');
         AppConfig::load('/nonexistent/path/.env');
     }
 

@@ -1,0 +1,11 @@
+.git
+node_modules
+vendor
+tests
+.vscode
+bin
+phpunit.xml
+phpstan.neon
+.php-cs-fixer.php
+.env.example
+compose.yml

@@ -1,0 +1,19 @@
+{
+  "name": "udonarium/axe-backend",
+  "type": "project",
+  "require": {},
+  "require-dev": {
+    "phpunit/phpunit": "^12.0",
+    "phpstan/phpstan": "^2.0",
+    "friendsofphp/php-cs-fixer": "^3.0"
+  },
+  "autoload-dev": {
+    "classmap": [
+      "src/"
+    ]
+  },
+  "config": {
+    "optimize-autoloader": true,
+    "sort-packages": true
+  }
+}

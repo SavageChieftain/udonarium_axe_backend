@@ -1,0 +1,38 @@
+{
+  // PHPStan 拡張機能 (sanderronde.phpstan-vscode) の設定
+  // bin/phpstan ラッパー経由で Docker コンテナ内の PHPStan を呼び出す
+  "phpstan.binPath": "${workspaceFolder}/bin/phpstan",
+  "phpstan.configFile": "${workspaceFolder}/phpstan.neon",
+
+  // ファイル保存時に自動解析を実行する
+  "phpstan.singleFileMode": false,
+  "phpstan.enabled": true,
+
+  // vendor/ 内のファイルは解析対象外
+  "phpstan.paths": {
+    "/var/www/html": "${workspaceFolder}"
+  },
+
+  // php-cs-fixer 拡張機能 (junstyle.php-cs-fixer) の設定
+  // bin/php-cs-fixer ラッパー経由で Docker コンテナ内の php-cs-fixer を呼び出す
+  "php-cs-fixer.executablePath": "${workspaceFolder}/bin/php-cs-fixer",
+  "php-cs-fixer.config": "${workspaceFolder}/.php-cs-fixer.php",
+  "php-cs-fixer.onsave": true,
+
+  // PHP ファイルのデフォルトフォーマッターを php-cs-fixer に設定
+  "[php]": {
+    "editor.defaultFormatter": "junstyle.php-cs-fixer"
+  },
+
+  // ファイル関連付け
+  "files.associations": {
+    "*.php": "php"
+  },
+
+  // PHPUnit 拡張機能 (recca0120.vscode-phpunit) の設定
+  // 拡張機能は "{php} {phpunit} [args]" の形式でコマンドを組み立てるため
+  // bin/php ラッパーを PHP バイナリとして指定する
+  "phpunit.php": "${workspaceFolder}/bin/php",
+  "phpunit.phpunit": "vendor/bin/phpunit",
+  "phpunit.xml": "${workspaceFolder}/phpunit.xml"
+}

@@ -47,9 +47,13 @@ class AppConfig
                 continue;
             }
             $result = parse_ini_file($path, false, INI_SCANNER_RAW);
-            $env    = ($result !== false) ? $result : [];
+            if ($result === false) {
+                throw new \InvalidArgumentException(
+                    "Failed to parse .env file: {$path}",
+                );
+            }
 
-            return self::fromEnv($env);
+            return self::fromEnv($result);
         }
 
         throw new \InvalidArgumentException(

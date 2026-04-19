@@ -1,3 +1,19 @@
+# [1.0.0](https://github.com/SavageChieftain/udonarium_axe_backend/compare/v0.3.0...v1.0.0) (2026-04-19)
+
+
+* refactor!: restructure src/ into layered architecture with Hono-like router ([ed60640](https://github.com/SavageChieftain/udonarium_axe_backend/commit/ed606402aa3f5951345def284142413b70086c8a))
+
+
+### Features
+
+* add .htaccess security hardening for sensitive directories ([d11ca13](https://github.com/SavageChieftain/udonarium_axe_backend/commit/d11ca13cd2667cc281f14029e3a1b06e2ed7aafd))
+
+
+### BREAKING CHANGES
+
+* src/ directory structure reorganized into
+subdirectories. All require_once paths have changed.
+
 # [0.3.0](https://github.com/SavageChieftain/udonarium_axe_backend/compare/v0.2.1...v0.3.0) (2026-04-18)
 
 

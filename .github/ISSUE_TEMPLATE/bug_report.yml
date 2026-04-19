@@ -1,0 +1,46 @@
+name: バグ報告
+description: バグや不具合を報告する
+labels: ["bug"]
+body:
+  - type: textarea
+    id: description
+    attributes:
+      label: バグの内容
+      description: どのような問題が発生しましたか？
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: 再現手順
+      description: バグを再現する手順を記載してください。
+      placeholder: |
+        1. ...
+        2. ...
+        3. ...
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: 期待する動作
+      description: 本来どのように動作すべきですか？
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: 実際の動作
+      description: 実際にはどのように動作しましたか？
+    validations:
+      required: true
+  - type: input
+    id: php-version
+    attributes:
+      label: PHP バージョン
+      placeholder: "例: 8.3.12"
+  - type: input
+    id: server
+    attributes:
+      label: サーバー環境
+      placeholder: "例: さくらのレンタルサーバー スタンダード"

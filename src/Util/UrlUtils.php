@@ -7,8 +7,11 @@ declare(strict_types=1);
  *
  * CORS オリジン検証やオリジン文字列のパースを担当する。
  */
-class UrlUtils
+final class UrlUtils
 {
+    /** @codeCoverageIgnore */
+    private function __construct() {}
+
     /**
      * カンマ区切りのオリジン文字列を配列に変換する。
      *
@@ -68,21 +71,30 @@ class UrlUtils
         }
 
         foreach ($allowedOrigins as $allowed) {
-            $allowedParsed = parse_url($allowed);
-            if (!is_array($allowedParsed) || !isset($allowedParsed['host'])) {
-                continue;
-            }
-
-            $hostMatch   = $requestParsed['host']   === $allowedParsed['host'];
-            $schemeMatch = ($requestParsed['scheme'] ?? '') === ($allowedParsed['scheme'] ?? '');
-            $portMatch   = ($requestParsed['port']   ?? '') === ($allowedParsed['port']   ?? '');
-
-            if ($hostMatch && $schemeMatch && $portMatch) {
+            if (self::originMatches($requestParsed, $allowed)) {
                 // リクエストの生文字列ではなく、管理者が設定した文字列を返す
                 return $allowed;
             }
         }
 
         return null;
+    }
+
+    /**
+     * パース済みリクエストオリジンが許可オリジン文字列と一致するか判定する。
+     *
+     * @param array<string, int|string> $requestParsed parse_url() で分解済みのリクエストオリジン
+     * @param string                    $allowed       許可オリジン文字列
+     */
+    private static function originMatches(array $requestParsed, string $allowed): bool
+    {
+        $allowedParsed = parse_url($allowed);
+        if (!is_array($allowedParsed) || !isset($allowedParsed['host'])) {
+            return false;
+        }
+
+        return $requestParsed['host']       === $allowedParsed['host']
+            && ($requestParsed['scheme'] ?? '') === ($allowedParsed['scheme'] ?? '')
+            && ($requestParsed['port']   ?? '') === ($allowedParsed['port']   ?? '');
     }
 }

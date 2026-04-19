@@ -8,10 +8,13 @@ declare(strict_types=1);
  * TypeScript 実装（udonarium-backend-vercel）と同一の構造・署名方式で
  * HS256 署名付き JWT を生成する。
  */
-class SkywayAuth
+final class SkywayAuth
 {
+    /** @codeCoverageIgnore */
+    private function __construct() {}
+
     /** トークンの有効期間（秒）: 24 時間 */
-    private const EXPIRY_SECONDS = 86400;
+    private const int EXPIRY_SECONDS = 86400;
 
     /**
      * SkyWay 2023 用の JWT トークンを生成する。
@@ -43,70 +46,84 @@ class SkywayAuth
         $jti = $jti ?? self::generateUuid();
         $iat = $iat ?? time();
 
-        $lobbyChannels = [
-            [
-                'name'    => "udonarium-lobby-*-of-{$lobbySize}",
-                'actions' => ['read', 'create'],
-                'members' => [
-                    [
-                        'name'         => $peerId,
-                        'actions'      => ['write'],
-                        'publication'  => ['actions' => []],
-                        'subscription' => ['actions' => []],
-                    ],
-                ],
-            ],
-        ];
-
-        $roomChannels = [
-            [
-                'name'    => $channelName,
-                'actions' => ['read', 'create'],
-                'members' => [
-                    [
-                        'name'         => $peerId,
-                        'actions'      => ['write'],
-                        'publication'  => ['actions' => ['write']],
-                        'subscription' => ['actions' => ['write']],
-                    ],
-                    [
-                        'name'         => '*',
-                        'actions'      => ['signal'],
-                        'publication'  => ['actions' => []],
-                        'subscription' => ['actions' => []],
-                    ],
-                ],
-            ],
-        ];
-
-        $header = ['alg' => 'HS256', 'typ' => 'JWT'];
-
-        $scope = [
-            'app' => [
-                'id'       => $appId,
-                'turn'     => true,
-                'actions'  => ['read'],
-                'channels' => array_merge($lobbyChannels, $roomChannels),
-            ],
-        ];
-
         $payload = [
             'jti'     => $jti,
             'iat'     => $iat,
             'exp'     => $iat + self::EXPIRY_SECONDS,
             'version' => 2,
-            'scope'   => $scope,
+            'scope'   => [
+                'app' => [
+                    'id'       => $appId,
+                    'turn'     => true,
+                    'actions'  => ['read'],
+                    'channels' => [
+                        self::buildChannelScope("udonarium-lobby-*-of-{$lobbySize}", $peerId, lobby: true),
+                        self::buildChannelScope($channelName, $peerId, lobby: false),
+                    ],
+                ],
+            ],
         ];
 
+        return self::encodeJwt($payload, $secret);
+    }
+
+    /**
+     * チャンネルスコープを構築する。
+     *
+     * @param string $name  チャンネル名
+     * @param string $peerId ピア ID
+     * @param bool   $lobby  ロビーチャンネルかどうか
+     *
+     * @return array<string, mixed> SkyWay チャンネルスコープ
+     */
+    private static function buildChannelScope(string $name, string $peerId, bool $lobby): array
+    {
+        $members = [
+            [
+                'name'         => $peerId,
+                'actions'      => ['write'],
+                'publication'  => ['actions' => $lobby ? [] : ['write']],
+                'subscription' => ['actions' => $lobby ? [] : ['write']],
+            ],
+        ];
+
+        if (!$lobby) {
+            $members[] = [
+                'name'         => '*',
+                'actions'      => ['signal'],
+                'publication'  => ['actions' => []],
+                'subscription' => ['actions' => []],
+            ];
+        }
+
+        return [
+            'name'    => $name,
+            'actions' => ['read', 'create'],
+            'members' => $members,
+        ];
+    }
+
+    /**
+     * ペイロードから HS256 署名付き JWT を生成する。
+     *
+     * @param array<string, mixed> $payload JWT ペイロード
+     * @param string               $secret  HMAC-SHA256 署名キー
+     *
+     * @return string JWT 文字列
+     *
+     * @throws \JsonException JSON エンコードに失敗した場合
+     */
+    private static function encodeJwt(array $payload, string $secret): string
+    {
         $flags = JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR;
 
-        $jwtHeader    = self::base64UrlEncode((string) json_encode($header, $flags));
-        $jwtPayload   = self::base64UrlEncode((string) json_encode($payload, $flags));
-        $jwtSignature = self::base64UrlEncode(
-            (string) hash_hmac('sha256', $jwtHeader . '.' . $jwtPayload, $secret, true),
+        $header    = self::base64UrlEncode((string) json_encode(['alg' => 'HS256', 'typ' => 'JWT'], $flags));
+        $body      = self::base64UrlEncode((string) json_encode($payload, $flags));
+        $signature = self::base64UrlEncode(
+            (string) hash_hmac('sha256', $header . '.' . $body, $secret, true),
         );
 
-        return $jwtHeader . '.' . $jwtPayload . '.' . $jwtSignature;
+        return $header . '.' . $body . '.' . $signature;
     }
 
     /**

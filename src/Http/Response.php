@@ -8,7 +8,7 @@ declare(strict_types=1);
  * ファクトリメソッドで JSON・テキスト・204 のレスポンスを生成し、
  * {@see send()} で実際に送出する。
  */
-class Response
+final readonly class Response
 {
     /**
      * @param int                  $statusCode  HTTP ステータスコード
@@ -17,10 +17,10 @@ class Response
      * @param array<string, string> $headers     追加レスポンスヘッダー
      */
     private function __construct(
-        private readonly int    $statusCode,
-        private readonly string $contentType,
-        private readonly string $body,
-        private readonly array  $headers = [],
+        public int    $statusCode,
+        private string $contentType,
+        public string $body,
+        public array  $headers = [],
     ) {}
 
     /**
@@ -82,46 +82,14 @@ class Response
     }
 
     /**
-     * HTTP ステータスコードを返す。
-     *
-     * @return int HTTP ステータスコード
-     */
-    public function getStatusCode(): int
-    {
-        return $this->statusCode;
-    }
-
-    /**
-     * レスポンスボディを返す。
-     *
-     * @return string レスポンスボディ文字列
-     */
-    public function getBody(): string
-    {
-        return $this->body;
-    }
-
-    /**
-     * 追加レスポンスヘッダーを返す。
-     *
-     * @return array<string, string> ヘッダー名をキー、値をバリューとする配列
-     */
-    public function getHeaders(): array
-    {
-        return $this->headers;
-    }
-
-    /**
-     * レスポンスを送出してプロセスを終了する。
+     * レスポンスを送出する。
      *
      * ステータスコード・Content-Type・セキュリティヘッダー・追加ヘッダーを
-     * 送出し、ボディを出力した後 exit する。
-     *
-     * @return never
+     * 送出し、ボディを出力する。
      *
      * @codeCoverageIgnore
      */
-    public function send(): never
+    public function send(): void
     {
         http_response_code($this->statusCode);
         if ($this->contentType !== '') {
@@ -136,6 +104,5 @@ class Response
         }
 
         echo $this->body;
-        exit;
     }
 }

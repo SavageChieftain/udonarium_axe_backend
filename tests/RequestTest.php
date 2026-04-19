@@ -70,12 +70,30 @@ class RequestTest extends TestCase
     }
 
     /**
+     * create() で指定した contentType がそのまま設定されることを確認する。
+     */
+    public function testCreateSetsContentType(): void
+    {
+        $req = Request::create('POST', '/', '', 'application/json');
+        $this->assertSame('application/json', $req->contentType);
+    }
+
+    /**
+     * create() で contentType を省略した場合、空文字列がデフォルトになることを確認する。
+     */
+    public function testCreateDefaultsContentTypeToEmptyString(): void
+    {
+        $req = Request::create('GET', '/');
+        $this->assertSame('', $req->contentType);
+    }
+
+    /**
      * body() がサイズ上限以内のとき、ボディ文字列をそのまま返すことを確認する。
      */
     public function testBodyReturnsBodyWhenUnderLimit(): void
     {
         $body = '{"foo":"bar"}';
-        $req  = Request::create('POST', '/', '', $body);
+        $req  = Request::create('POST', '/', '', '', $body);
         $this->assertSame($body, $req->body(65536));
     }
 
@@ -85,7 +103,7 @@ class RequestTest extends TestCase
     public function testBodyReturnsFalseWhenOverLimit(): void
     {
         $body = str_repeat('x', 65537);
-        $req  = Request::create('POST', '/', '', $body);
+        $req  = Request::create('POST', '/', '', '', $body);
         $this->assertFalse($req->body(65536));
     }
 
@@ -95,7 +113,7 @@ class RequestTest extends TestCase
     public function testBodyReturnsBodyAtExactLimit(): void
     {
         $body = str_repeat('x', 65536);
-        $req  = Request::create('POST', '/', '', $body);
+        $req  = Request::create('POST', '/', '', '', $body);
         $this->assertSame($body, $req->body(65536));
     }
 
@@ -194,5 +212,33 @@ class RequestTest extends TestCase
 
         $req = Request::fromGlobals();
         $this->assertSame('OPTIONS', $req->method);
+    }
+
+    /**
+     * fromGlobals() が CONTENT_TYPE からメディアタイプ部分を抽出することを確認する。
+     */
+    public function testFromGlobalsExtractsContentType(): void
+    {
+        $_SERVER['REQUEST_METHOD'] = 'POST';
+        $_SERVER['REQUEST_URI']    = '/';
+        $_SERVER['SCRIPT_NAME']    = '/index.php';
+        $_SERVER['CONTENT_TYPE']   = 'application/json; charset=utf-8';
+
+        $req = Request::fromGlobals();
+        $this->assertSame('application/json', $req->contentType);
+    }
+
+    /**
+     * CONTENT_TYPE が未設定の場合、contentType が空文字列になることを確認する。
+     */
+    public function testFromGlobalsDefaultsContentTypeToEmptyWhenMissing(): void
+    {
+        $_SERVER['REQUEST_METHOD'] = 'GET';
+        $_SERVER['REQUEST_URI']    = '/';
+        $_SERVER['SCRIPT_NAME']    = '/index.php';
+        unset($_SERVER['CONTENT_TYPE']);
+
+        $req = Request::fromGlobals();
+        $this->assertSame('', $req->contentType);
     }
 }

@@ -8,7 +8,7 @@ declare(strict_types=1);
  * .env ファイルまたは環境変数配列から SkyWay 認証に必要な設定値を読み込み、
  * バリデーション済みのインスタンスを生成する。
  */
-class AppConfig
+final readonly class AppConfig
 {
     /**
      * @param string   $appId          SkyWay アプリケーション ID
@@ -17,10 +17,10 @@ class AppConfig
      * @param string[] $allowedOrigins CORS で許可するオリジンのリスト
      */
     public function __construct(
-        public readonly string $appId,
-        public readonly string $secret,
-        public readonly int    $lobbySize,
-        public readonly array  $allowedOrigins,
+        public string $appId,
+        public string $secret,
+        public int    $lobbySize,
+        public array  $allowedOrigins,
     ) {}
 
     /**

@@ -251,4 +251,19 @@ class AppConfigTest extends TestCase
         $config = AppConfig::load($envFile);
         $this->assertSame(5, $config->lobbySize);
     }
+
+    /**
+     * .env ファイルのパースに失敗した場合に InvalidArgumentException がスローされることを確認する。
+     */
+    #[\PHPUnit\Framework\Attributes\WithoutErrorHandler]
+    public function testLoadThrowsWhenEnvFileCannotBeParsed(): void
+    {
+        $envFile = $this->tempDir . '/.env';
+        // parse_ini_file が false を返す不正な構文（閉じられていないセクション）
+        file_put_contents($envFile, "[invalid\nKEY=value\n");
+
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage('Failed to parse .env file');
+        @AppConfig::load($envFile);
+    }
 }

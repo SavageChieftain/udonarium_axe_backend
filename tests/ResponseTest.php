@@ -18,8 +18,8 @@ class ResponseTest extends TestCase
     public function testJsonSetsStatusCodeAndBody(): void
     {
         $response = Response::json(200, ['key' => 'value']);
-        $this->assertSame(200, $response->getStatusCode());
-        $this->assertSame('{"key":"value"}', $response->getBody());
+        $this->assertSame(200, $response->statusCode);
+        $this->assertSame('{"key":"value"}', $response->body);
     }
 
     /**
@@ -28,7 +28,7 @@ class ResponseTest extends TestCase
     public function testJsonEncodesUnicodeWithoutEscape(): void
     {
         $response = Response::json(200, ['msg' => 'こんにちは']);
-        $this->assertStringContainsString('こんにちは', $response->getBody());
+        $this->assertStringContainsString('こんにちは', $response->body);
     }
 
     /**
@@ -37,8 +37,8 @@ class ResponseTest extends TestCase
     public function testTextSetsStatusCodeAndBody(): void
     {
         $response = Response::text(200, 'OK');
-        $this->assertSame(200, $response->getStatusCode());
-        $this->assertSame('OK', $response->getBody());
+        $this->assertSame(200, $response->statusCode);
+        $this->assertSame('OK', $response->body);
     }
 
     /**
@@ -47,8 +47,8 @@ class ResponseTest extends TestCase
     public function testNoContentReturns204WithEmptyBody(): void
     {
         $response = Response::noContent();
-        $this->assertSame(204, $response->getStatusCode());
-        $this->assertSame('', $response->getBody());
+        $this->assertSame(204, $response->statusCode);
+        $this->assertSame('', $response->body);
     }
 
     /**
@@ -59,7 +59,7 @@ class ResponseTest extends TestCase
         $response = Response::json(200, [])
             ->withHeaders(['X-Foo' => 'bar', 'X-Baz' => 'qux']);
 
-        $headers = $response->getHeaders();
+        $headers = $response->headers;
         $this->assertSame('bar', $headers['X-Foo']);
         $this->assertSame('qux', $headers['X-Baz']);
     }
@@ -72,8 +72,8 @@ class ResponseTest extends TestCase
         $original = Response::json(200, []);
         $updated  = $original->withHeaders(['X-New' => 'value']);
 
-        $this->assertEmpty($original->getHeaders());
-        $this->assertArrayHasKey('X-New', $updated->getHeaders());
+        $this->assertEmpty($original->headers);
+        $this->assertArrayHasKey('X-New', $updated->headers);
     }
 
     /**
@@ -85,19 +85,19 @@ class ResponseTest extends TestCase
             ->withHeaders(['X-Foo' => 'first'])
             ->withHeaders(['X-Foo' => 'second']);
 
-        $this->assertSame('second', $response->getHeaders()['X-Foo']);
+        $this->assertSame('second', $response->headers['X-Foo']);
     }
 
     /**
-     * send() メソッドの戻り値型が never であることをリフレクションで確認する。
+     * send() メソッドの戻り値型が void であることをリフレクションで確認する。
      */
-    public function testSendMethodIsNeverReturnType(): void
+    public function testSendMethodIsVoidReturnType(): void
     {
         $method     = new \ReflectionMethod(Response::class, 'send');
         $returnType = $method->getReturnType();
 
         $this->assertNotNull($returnType);
-        $this->assertSame('never', (string) $returnType);
+        $this->assertSame('void', (string) $returnType);
     }
 
     /**

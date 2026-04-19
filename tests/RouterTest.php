@@ -7,22 +7,23 @@ use PHPUnit\Framework\TestCase;
 /**
  * {@see Router} のテストケース。
  *
- * ルーティングの正常ディスパッチ、大文字小文字の無視、
- * 未登録パスの null 応答、メソッド不一致時の 405 応答を検証する。
+ * メソッドチェーンによるルート登録、ミドルウェアのパスパターンマッチ、
+ * notFound フォールバック、メソッド不一致時の 405 応答を検証する。
  */
 class RouterTest extends TestCase
 {
+    // ─── ルートディスパッチ ──────────────────────────────────────────────────
+
     /**
      * 登録済みハンドラが正しくディスパッチされ、レスポンスを返すことを確認する。
      */
     public function testDispatchCallsRegisteredHandler(): void
     {
-        $router = new Router();
-        $router->add('GET', '/foo', fn(): Response => Response::json(200, ['ok' => true]));
+        $router = (new Router())
+            ->get('/foo', fn(): Response => Response::json(200, ['ok' => true]));
 
         $response = $router->dispatch('GET', '/foo');
-        $this->assertNotNull($response);
-        $this->assertSame(200, $response->getStatusCode());
+        $this->assertSame(200, $response->statusCode);
     }
 
     /**
@@ -30,22 +31,22 @@ class RouterTest extends TestCase
      */
     public function testDispatchIsMethodCaseInsensitive(): void
     {
-        $router = new Router();
-        $router->add('POST', '/bar', fn(): Response => Response::json(201, []));
+        $router = (new Router())
+            ->post('/bar', fn(): Response => Response::json(201, []));
 
-        $this->assertNotNull($router->dispatch('post', '/bar'));
-        $this->assertNotNull($router->dispatch('POST', '/bar'));
+        $this->assertSame(201, $router->dispatch('post', '/bar')->statusCode);
+        $this->assertSame(201, $router->dispatch('POST', '/bar')->statusCode);
     }
 
     /**
-     * 未登録のパスに対して null を返すことを確認する。
+     * 未登録のパスに対してデフォルト 404 を返すことを確認する。
      */
-    public function testDispatchReturnsNullForUnknownPath(): void
+    public function testDispatchReturnsDefault404ForUnknownPath(): void
     {
-        $router = new Router();
-        $router->add('GET', '/foo', fn(): Response => Response::json(200, []));
+        $router = (new Router())
+            ->get('/foo', fn(): Response => Response::json(200, []));
 
-        $this->assertNull($router->dispatch('GET', '/unknown'));
+        $this->assertSame(404, $router->dispatch('GET', '/unknown')->statusCode);
     }
 
     /**
@@ -53,12 +54,10 @@ class RouterTest extends TestCase
      */
     public function testDispatchReturns405ForWrongMethod(): void
     {
-        $router = new Router();
-        $router->add('GET', '/foo', fn(): Response => Response::json(200, []));
+        $router = (new Router())
+            ->get('/foo', fn(): Response => Response::json(200, []));
 
-        $response = $router->dispatch('POST', '/foo');
-        $this->assertNotNull($response);
-        $this->assertSame(405, $response->getStatusCode());
+        $this->assertSame(405, $router->dispatch('POST', '/foo')->statusCode);
     }
 
     /**
@@ -66,28 +65,125 @@ class RouterTest extends TestCase
      */
     public function testDispatchReturnsAllowHeaderIn405(): void
     {
-        $router = new Router();
-        $router->add('GET', '/foo', fn(): Response => Response::json(200, []));
-        $router->add('POST', '/foo', fn(): Response => Response::json(201, []));
+        $router = (new Router())
+            ->get('/foo', fn(): Response => Response::json(200, []))
+            ->post('/foo', fn(): Response => Response::json(201, []));
 
         $response = $router->dispatch('DELETE', '/foo');
-        $this->assertNotNull($response);
-        $headers = $response->getHeaders();
-        $this->assertArrayHasKey('Allow', $headers);
-        $this->assertStringContainsString('GET', $headers['Allow']);
-        $this->assertStringContainsString('POST', $headers['Allow']);
+        $this->assertSame(405, $response->statusCode);
+        $this->assertArrayHasKey('Allow', $response->headers);
+        $this->assertStringContainsString('GET', $response->headers['Allow']);
+        $this->assertStringContainsString('POST', $response->headers['Allow']);
+    }
+
+    // ─── notFound ────────────────────────────────────────────────────────────
+
+    /**
+     * notFound() で登録したハンドラが呼ばれることを確認する。
+     */
+    public function testNotFoundHandlerIsCalled(): void
+    {
+        $router = (new Router())
+            ->notFound(fn(): Response => Response::text(404, 'Custom Not Found'));
+
+        $response = $router->dispatch('GET', '/missing');
+        $this->assertSame(404, $response->statusCode);
+        $this->assertSame('Custom Not Found', $response->body);
+    }
+
+    // ─── ミドルウェア（use） ─────────────────────────────────────────────────
+
+    /**
+     * use() で登録したミドルウェアがプレフィックスマッチでハンドラをラップすることを確認する。
+     */
+    public function testUseAppliesMiddlewareToMatchingPrefix(): void
+    {
+        $mw = fn(\Closure $next): Response => $next()->withHeaders(['X-Test' => 'applied']);
+
+        $router = (new Router())
+            ->use('/api/*', $mw)
+            ->get('/api/data', fn(): Response => Response::json(200, ['ok' => true]));
+
+        $response = $router->dispatch('GET', '/api/data');
+        $this->assertSame(200, $response->statusCode);
+        $this->assertSame('applied', $response->headers['X-Test']);
     }
 
     /**
-     * dispatch() が null を返す場合に null 合体演算子でフォールバックできることを確認する。
+     * use() で登録したミドルウェアが 405 レスポンスもラップすることを確認する。
      */
-    public function testDispatchReturnsFallback(): void
+    public function testUseAppliesMiddlewareTo405(): void
     {
-        $router = new Router();
+        $mw = fn(\Closure $next): Response => $next()->withHeaders(['X-Test' => 'applied']);
 
-        $response = $router->dispatch('GET', '/missing')
-            ?? Response::json(404, ['error' => 'Not Found.']);
+        $router = (new Router())
+            ->use('/api/*', $mw)
+            ->post('/api/data', fn(): Response => Response::json(201, []));
 
-        $this->assertSame(404, $response->getStatusCode());
+        $response = $router->dispatch('GET', '/api/data');
+        $this->assertSame(405, $response->statusCode);
+        $this->assertSame('applied', $response->headers['X-Test']);
+    }
+
+    /**
+     * パターンに一致しないパスにはミドルウェアが適用されないことを確認する。
+     */
+    public function testUseDoesNotApplyToNonMatchingPaths(): void
+    {
+        $mw = fn(\Closure $next): Response => $next()->withHeaders(['X-Test' => 'applied']);
+
+        $router = (new Router())
+            ->use('/api/*', $mw)
+            ->get('/', fn(): Response => Response::text(200, 'home'));
+
+        $response = $router->dispatch('GET', '/');
+        $this->assertSame(200, $response->statusCode);
+        $this->assertArrayNotHasKey('X-Test', $response->headers);
+    }
+
+    /**
+     * ワイルドカード * が全パスにマッチすることを確認する。
+     */
+    public function testUseWildcardMatchesAllPaths(): void
+    {
+        $mw = fn(\Closure $next): Response => $next()->withHeaders(['X-Global' => '1']);
+
+        $router = (new Router())
+            ->use('*', $mw)
+            ->get('/', fn(): Response => Response::text(200, 'home'))
+            ->get('/foo', fn(): Response => Response::text(200, 'foo'));
+
+        $this->assertSame('1', $router->dispatch('GET', '/')->headers['X-Global']);
+        $this->assertSame('1', $router->dispatch('GET', '/foo')->headers['X-Global']);
+    }
+
+    /**
+     * ミドルウェアがハンドラを呼ばずに短絡復帰できることを確認する。
+     */
+    public function testMiddlewareCanShortCircuit(): void
+    {
+        $mw = fn(\Closure $next): Response => Response::json(403, ['error' => 'Forbidden']);
+
+        $router = (new Router())
+            ->use('/secret/*', $mw)
+            ->get('/secret/data', fn(): Response => Response::json(200, ['data' => 'top-secret']));
+
+        $this->assertSame(403, $router->dispatch('GET', '/secret/data')->statusCode);
+    }
+
+    /**
+     * use() で完全一致パターンがマッチすることを確認する。
+     */
+    public function testUseExactPathMatch(): void
+    {
+        $mw = fn(\Closure $next): Response => $next()->withHeaders(['X-Exact' => '1']);
+
+        $router = (new Router())
+            ->use('/only-this', $mw)
+            ->get('/only-this', fn(): Response => Response::text(200, 'hit'))
+            ->get('/other', fn(): Response => Response::text(200, 'miss'));
+
+        $this->assertSame('1', $router->dispatch('GET', '/only-this')->headers['X-Exact']);
+        $this->assertArrayNotHasKey('X-Exact', $router->dispatch('GET', '/other')->headers);
     }
 }
